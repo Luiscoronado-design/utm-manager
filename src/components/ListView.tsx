@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
+import * as XLSX from 'xlsx';
 import { Space, Project, List, UTMLink } from '../types';
 import LinkModal from './LinkModal';
 import { buildUTMLink } from '../utils/utm';
-import { Search, ExternalLink, Copy, Trash2, CheckCircle2, Plus, Edit2, CheckSquare, Square, CopyPlus, ArrowUp, ArrowDown } from 'lucide-react';
+import { Search, ExternalLink, Copy, Trash2, CheckCircle2, Plus, Edit2, CheckSquare, Square, CopyPlus, ArrowUp, ArrowDown, FileDown } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 
 interface ListViewProps {
@@ -185,6 +186,46 @@ export default function ListView({ space, project, list, links, onAddLink, onAdd
     }
   };
 
+  const getShortSlug = (shortUrl: string): string => {
+    if (!shortUrl) return '';
+    try {
+      const url = new URL(shortUrl);
+      // Remove leading slash and return just the path slug
+      return url.pathname.replace(/^\//, '');
+    } catch {
+      // Not a valid URL, return as-is or extract after last "/"
+      return shortUrl.split('/').pop() || shortUrl;
+    }
+  };
+
+  const handleExportExcel = () => {
+    const linksToExport = selectedLinks.size > 0
+      ? filteredLinks.filter(l => selectedLinks.has(l.id))
+      : filteredLinks;
+
+    const rows = linksToExport.map(link => ({
+      'Título': link.title,
+      'Link UTM': link.finalUrl,
+      'Link Acortado (slug)': link.shortUrl ? getShortSlug(link.shortUrl) : '',
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+
+    // Auto-width columns
+    const colWidths = [
+      { wch: 30 },  // Título
+      { wch: 80 },  // Link UTM
+      { wch: 50 },  // Link Acortado
+    ];
+    worksheet['!cols'] = colWidths;
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, list.name.slice(0, 31));
+
+    const fileName = `${list.name.replace(/[^a-z0-9_\-]/gi, '_')}_links.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+  };
+
   return (
     <div className="h-full flex flex-col bg-gray-50">
       <div className="bg-white border-b border-gray-200 px-8 py-6 shrink-0">
@@ -261,12 +302,19 @@ export default function ListView({ space, project, list, links, onAddLink, onAdd
                     <Edit2 className="w-4 h-4" />
                     Edición Masiva
                   </button>
-                  <button 
+                  <button
                     onClick={handleBulkDelete}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 bg-white border border-gray-300 hover:bg-red-50 rounded-md transition-colors shadow-sm"
                   >
                     <Trash2 className="w-4 h-4" />
                     Eliminar
+                  </button>
+                  <button
+                    onClick={handleExportExcel}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-green-700 bg-white border border-gray-300 hover:bg-green-50 rounded-md transition-colors shadow-sm"
+                  >
+                    <FileDown className="w-4 h-4" />
+                    Descargar Excel
                   </button>
                 </div>
                 <div className="flex-1"></div>
@@ -289,8 +337,20 @@ export default function ListView({ space, project, list, links, onAddLink, onAdd
                     className="pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full bg-white shadow-sm"
                   />
                 </div>
-                <div className="text-sm text-gray-500 font-medium">
-                  {filteredLinks.length} {filteredLinks.length === 1 ? 'link' : 'links'}
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-gray-500 font-medium">
+                    {filteredLinks.length} {filteredLinks.length === 1 ? 'link' : 'links'}
+                  </span>
+                  {filteredLinks.length > 0 && (
+                    <button
+                      onClick={handleExportExcel}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-green-700 bg-white border border-gray-300 hover:bg-green-50 rounded-md transition-colors shadow-sm"
+                      title="Descargar todos los links como Excel"
+                    >
+                      <FileDown className="w-4 h-4" />
+                      Excel
+                    </button>
+                  )}
                 </div>
               </>
             )}
