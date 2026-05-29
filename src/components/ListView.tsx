@@ -11,8 +11,8 @@ interface ListViewProps {
   project: Project;
   list: List;
   links: UTMLink[];
-  onAddLink: (link: Omit<UTMLink, 'id' | 'createdAt'>) => void;
-  onAddLinks: (links: Omit<UTMLink, 'id' | 'createdAt'>[]) => void;
+  onAddLink: (link: Omit<UTMLink, 'id' | 'createdAt'>) => Promise<any>;
+  onAddLinks: (links: Omit<UTMLink, 'id' | 'createdAt'>[]) => Promise<any>;
   onEditLink: (id: string, updates: Partial<UTMLink>) => void;
   onDeleteLink: (id: string) => void;
   onEditList: (id: string, updates: Partial<List>) => void;
@@ -94,10 +94,10 @@ export default function ListView({ space, project, list, links, onAddLink, onAdd
     setSelectedLinks(newSet);
   };
 
-  const handleSave = (data: Partial<UTMLink> | Partial<UTMLink>[]) => {
+  const handleSave = async (data: Partial<UTMLink> | Partial<UTMLink>[]) => {
     if (modalState.mode === 'create') {
       if (Array.isArray(data)) {
-        onAddLinks(data.map(d => ({
+        await onAddLinks(data.map(d => ({
           listId: list.id,
           title: d.title!,
           baseUrl: d.baseUrl!,
@@ -110,7 +110,7 @@ export default function ListView({ space, project, list, links, onAddLink, onAdd
           finalUrl: d.finalUrl!
         })));
       } else {
-        onAddLink({
+        await onAddLink({
           listId: list.id,
           title: data.title!,
           baseUrl: data.baseUrl!,

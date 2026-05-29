@@ -192,9 +192,6 @@ export const useStore = (activeProfileId: string | null) => {
 
   // --- LINKS (UTMs) ---
   const addLink = async (link: Omit<UTMLink, 'id' | 'createdAt'>) => {
-    const isDuplicate = links.some(l => l.listId === link.listId && l.finalUrl === link.finalUrl);
-    if (isDuplicate) throw new Error('Este enlace ya existe en la lista.');
-
     const newLink: UTMLink = { ...link, id: crypto.randomUUID(), createdAt: Date.now() };
     setLinks(prev => [newLink, ...prev]);
     

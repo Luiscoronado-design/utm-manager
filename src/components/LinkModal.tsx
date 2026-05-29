@@ -12,7 +12,7 @@ interface LinkModalProps {
   mode: 'create' | 'edit' | 'bulk';
   initialData?: UTMLink;
   selectedCount?: number;
-  onSave: (data: Partial<UTMLink> | Partial<UTMLink>[]) => void;
+  onSave: (data: Partial<UTMLink> | Partial<UTMLink>[]) => Promise<any> | void;
 }
 
 export default function LinkModal({ isOpen, onClose, space, project, list, mode, initialData, selectedCount, onSave }: LinkModalProps) {
@@ -149,7 +149,7 @@ export default function LinkModal({ isOpen, onClose, space, project, list, mode,
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -269,7 +269,7 @@ export default function LinkModal({ isOpen, onClose, space, project, list, mode,
       }
       
       try {
-        onSave(linksToCreate);
+        await onSave(linksToCreate);
         onClose();
       } catch (err: any) {
         setError(err.message || 'Error al guardar los enlaces.');
@@ -280,7 +280,7 @@ export default function LinkModal({ isOpen, onClose, space, project, list, mode,
     const finalUrl = buildUTMLink(fixedBaseUrl, source, medium, campaign, content, term);
 
     try {
-      onSave({
+      await onSave({
         title,
         baseUrl: fixedBaseUrl,
         utmSource: normalizeUTMValue(source),
