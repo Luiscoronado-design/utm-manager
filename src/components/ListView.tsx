@@ -199,9 +199,10 @@ export default function ListView({ space, project, list, links, onAddLink, onAdd
   };
 
   const handleExportExcel = () => {
-    const linksToExport = selectedLinks.size > 0
+    const linksToExport = (selectedLinks.size > 0
       ? filteredLinks.filter(l => selectedLinks.has(l.id))
-      : filteredLinks;
+      : filteredLinks
+    ).filter(l => l.shortUrl && l.shortUrl.trim() !== '');
 
     const rows = linksToExport.map(link => ({
       'Título': link.title,
