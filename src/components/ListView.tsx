@@ -416,7 +416,15 @@ export default function ListView({ space, project, list, links, onAddLink, onAdd
                           </button>
                         </td>
                         <td className="px-4 py-4">
-                          <div className="font-semibold text-gray-900">{link.title}</div>
+                          <a
+                            href={link.finalUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="font-semibold text-gray-900 hover:text-indigo-600 hover:underline transition-colors"
+                          >
+                            {link.title}
+                          </a>
                           <div className="flex flex-col gap-1 mt-1">
                             <div className="text-gray-500 text-xs truncate max-w-xs font-mono flex items-center gap-1.5" title={link.finalUrl}>
                               <span className="shrink-0 text-[10px] font-bold text-gray-400 uppercase">UTM:</span>
@@ -425,7 +433,13 @@ export default function ListView({ space, project, list, links, onAddLink, onAdd
                             {link.shortUrl && (
                               <div className="text-indigo-600 text-xs truncate max-w-xs font-mono flex items-center gap-1.5" title={link.shortUrl}>
                                 <span className="shrink-0 text-[10px] font-bold text-indigo-400 uppercase">Short:</span>
-                                <span className="truncate">{link.shortUrl}</span>
+                                <a
+                                  href={link.shortUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="truncate hover:underline"
+                                >{link.shortUrl}</a>
                                 <button 
                                   onClick={(e) => { e.stopPropagation(); handleCopy(link.id, link.shortUrl!, true); }}
                                   className="p-0.5 hover:bg-indigo-100 rounded transition-colors"
