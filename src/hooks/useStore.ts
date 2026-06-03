@@ -20,7 +20,7 @@ export const useStore = (activeProfileId: string | null) => {
   const pushUndo = (action: UndoAction) => {
     setUndoStack(prev => [...prev.slice(-MAX_UNDO + 1), action]);
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-    undoTimerRef.current = setTimeout(() => setUndoStack([]), 5000);
+    undoTimerRef.current = setTimeout(() => setUndoStack([]), 15000);
   };
 
   const fetchData = async () => {
