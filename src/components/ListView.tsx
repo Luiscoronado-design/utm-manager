@@ -15,10 +15,11 @@ interface ListViewProps {
   onAddLinks: (links: Omit<UTMLink, 'id' | 'createdAt'>[]) => Promise<any>;
   onEditLink: (id: string, updates: Partial<UTMLink>) => void;
   onDeleteLink: (id: string) => void;
+  onDeleteLinks: (ids: string[]) => void;
   onEditList: (id: string, updates: Partial<List>) => void;
 }
 
-export default function ListView({ space, project, list, links, onAddLink, onAddLinks, onEditLink, onDeleteLink, onEditList }: ListViewProps) {
+export default function ListView({ space, project, list, links, onAddLink, onAddLinks, onEditLink, onDeleteLink, onDeleteLinks, onEditList }: ListViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isEditingBaseUrl, setIsEditingBaseUrl] = useState(false);
   const [tempBaseUrl, setTempBaseUrl] = useState(list.baseUrl);
@@ -537,7 +538,7 @@ export default function ListView({ space, project, list, links, onAddLink, onAdd
         message={deleteState?.type === 'bulk' ? `¿Estás seguro de que deseas eliminar los ${selectedLinks.size} enlaces seleccionados?` : "¿Estás seguro de que deseas eliminar este enlace?"} 
         onConfirm={() => {
           if (deleteState?.type === 'bulk') {
-            Array.from(selectedLinks).forEach((id: string) => onDeleteLink(id));
+            onDeleteLinks(Array.from(selectedLinks));
             setSelectedLinks(new Set());
           } else if (deleteState?.id) {
             onDeleteLink(deleteState.id);

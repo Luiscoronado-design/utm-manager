@@ -1,12 +1,23 @@
 import { useState, useEffect } from 'react';
 import { Space, Project, List, UTMLink } from '../types';
 
+type UndoAction =
+  | { type: 'create'; ids: string[]; description: string }
+  | { type: 'delete'; links: UTMLink[]; description: string }
+  | { type: 'edit'; id: string; prev: Partial<UTMLink>; description: string };
+
+const MAX_UNDO = 20;
+
 export const useStore = (activeProfileId: string | null) => {
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [lists, setLists] = useState<List[]>([]);
   const [links, setLinks] = useState<UTMLink[]>([]);
   const [loading, setLoading] = useState(true);
+  const [undoStack, setUndoStack] = useState<UndoAction[]>([]);
+
+  const pushUndo = (action: UndoAction) =>
+    setUndoStack(prev => [...prev.slice(-MAX_UNDO + 1), action]);
 
   const fetchData = async () => {
     if (!activeProfileId) {
@@ -194,13 +205,13 @@ export const useStore = (activeProfileId: string | null) => {
   const addLink = async (link: Omit<UTMLink, 'id' | 'createdAt'>) => {
     const newLink: UTMLink = { ...link, id: crypto.randomUUID(), createdAt: Date.now() };
     setLinks(prev => [newLink, ...prev]);
-    
     try {
       const res = await fetch('/api/links', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newLink) });
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.error || 'Error al guardar el enlace');
       }
+      pushUndo({ type: 'create', ids: [newLink.id], description: `Link creado: "${newLink.title}"` });
     } catch (error: any) {
       setLinks(prev => prev.filter(l => l.id !== newLink.id));
       throw error;
@@ -211,13 +222,13 @@ export const useStore = (activeProfileId: string | null) => {
   const addLinks = async (newLinks: Omit<UTMLink, 'id' | 'createdAt'>[]) => {
     const linksToInsert: UTMLink[] = newLinks.map(link => ({ ...link, id: crypto.randomUUID(), createdAt: Date.now() }));
     setLinks(prev => [...linksToInsert, ...prev]);
-    
     try {
       const res = await fetch('/api/links/bulk', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(linksToInsert) });
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.error || 'Error al guardar los enlaces');
       }
+      pushUndo({ type: 'create', ids: linksToInsert.map(l => l.id), description: `${linksToInsert.length} links creados` });
     } catch (error: any) {
       const idsToRemove = new Set(linksToInsert.map(l => l.id));
       setLinks(prev => prev.filter(l => !idsToRemove.has(l.id)));
@@ -227,17 +238,67 @@ export const useStore = (activeProfileId: string | null) => {
   };
 
   const editLink = async (id: string, updates: Partial<UTMLink>) => {
-    setLinks(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+    setLinks(prev => {
+      const old = prev.find(l => l.id === id);
+      if (old) {
+        const prevData: Partial<UTMLink> = {};
+        (Object.keys(updates) as (keyof UTMLink)[]).forEach(k => { (prevData as any)[k] = old[k]; });
+        pushUndo({ type: 'edit', id, prev: prevData, description: `Link editado: "${old.title}"` });
+      }
+      return prev.map(l => l.id === id ? { ...l, ...updates } : l);
+    });
     try {
       await fetch(`/api/links/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updates) });
     } catch (error) { console.error('Error editing link:', error); }
   };
 
   const deleteLink = async (id: string) => {
-    setLinks(prev => prev.filter(l => l.id !== id));
+    setLinks(prev => {
+      const link = prev.find(l => l.id === id);
+      if (link) pushUndo({ type: 'delete', links: [link], description: `Link eliminado: "${link.title}"` });
+      return prev.filter(l => l.id !== id);
+    });
     try {
       await fetch(`/api/links/${id}`, { method: 'DELETE' });
     } catch (error) { console.error('Error deleting link:', error); }
+  };
+
+  const deleteLinks = async (ids: string[]) => {
+    setLinks(prev => {
+      const toDelete = prev.filter(l => ids.includes(l.id));
+      if (toDelete.length > 0) {
+        pushUndo({ type: 'delete', links: toDelete, description: `${toDelete.length} links eliminados` });
+      }
+      return prev.filter(l => !ids.includes(l.id));
+    });
+    try {
+      await Promise.all(ids.map(id => fetch(`/api/links/${id}`, { method: 'DELETE' })));
+    } catch (error) { console.error('Error deleting links:', error); }
+  };
+
+  const undo = async () => {
+    const action = undoStack[undoStack.length - 1];
+    if (!action) return;
+    setUndoStack(prev => prev.slice(0, -1));
+
+    if (action.type === 'create') {
+      setLinks(prev => prev.filter(l => !action.ids.includes(l.id)));
+      await Promise.all(action.ids.map(id => fetch(`/api/links/${id}`, { method: 'DELETE' })));
+    } else if (action.type === 'delete') {
+      setLinks(prev => [...action.links, ...prev]);
+      await fetch('/api/links/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(action.links)
+      });
+    } else if (action.type === 'edit') {
+      setLinks(prev => prev.map(l => l.id === action.id ? { ...l, ...action.prev } : l));
+      await fetch(`/api/links/${action.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(action.prev)
+      });
+    }
   };
 
   return {
@@ -245,6 +306,8 @@ export const useStore = (activeProfileId: string | null) => {
     addSpace, editSpace, deleteSpace, duplicateSpace, reorderSpaces,
     addProject, editProject, deleteProject, duplicateProject, moveProject, reorderProjects,
     addList, editList, deleteList, duplicateList, moveList, reorderLists,
-    addLink, addLinks, editLink, deleteLink,
+    addLink, addLinks, editLink, deleteLink, deleteLinks,
+    undo, canUndo: undoStack.length > 0,
+    lastUndoDescription: undoStack[undoStack.length - 1]?.description ?? null,
   };
 };
