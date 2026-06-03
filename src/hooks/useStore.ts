@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Space, Project, List, UTMLink } from '../types';
 
 type UndoAction =
@@ -15,9 +15,13 @@ export const useStore = (activeProfileId: string | null) => {
   const [links, setLinks] = useState<UTMLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [undoStack, setUndoStack] = useState<UndoAction[]>([]);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const pushUndo = (action: UndoAction) =>
+  const pushUndo = (action: UndoAction) => {
     setUndoStack(prev => [...prev.slice(-MAX_UNDO + 1), action]);
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    undoTimerRef.current = setTimeout(() => setUndoStack([]), 5000);
+  };
 
   const fetchData = async () => {
     if (!activeProfileId) {
