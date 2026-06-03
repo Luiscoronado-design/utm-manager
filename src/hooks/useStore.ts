@@ -6,7 +6,7 @@ type UndoAction =
   | { type: 'delete'; links: UTMLink[]; description: string }
   | { type: 'edit'; id: string; prev: Partial<UTMLink>; description: string };
 
-const MAX_UNDO = 20;
+const MAX_UNDO = 1;
 
 export const useStore = (activeProfileId: string | null) => {
   const [spaces, setSpaces] = useState<Space[]>([]);
@@ -308,6 +308,5 @@ export const useStore = (activeProfileId: string | null) => {
     addList, editList, deleteList, duplicateList, moveList, reorderLists,
     addLink, addLinks, editLink, deleteLink, deleteLinks,
     undo, canUndo: undoStack.length > 0,
-    lastUndoDescription: undoStack[undoStack.length - 1]?.description ?? null,
   };
 };

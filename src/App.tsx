@@ -44,7 +44,7 @@ export default function App() {
     addProject, editProject, deleteProject, duplicateProject, moveProject, reorderProjects,
     addList, editList, deleteList, duplicateList, moveList, reorderLists,
     addLink, addLinks, editLink, deleteLink, deleteLinks,
-    undo, canUndo, lastUndoDescription,
+    undo, canUndo,
   } = useStore(activeProfileId);
 
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
@@ -194,16 +194,15 @@ export default function App() {
       </main>
       {/* Undo floating bar */}
       {canUndo && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 text-white px-4 py-3 rounded-xl shadow-2xl text-sm animate-fade-in">
-          <RotateCcw className="w-4 h-4 text-indigo-400 shrink-0" />
-          <span className="text-gray-300 max-w-xs truncate">{lastUndoDescription}</span>
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-fade-in">
           <button
             onClick={undo}
-            className="ml-1 px-3 py-1 bg-indigo-500 hover:bg-indigo-400 text-white font-semibold rounded-lg transition-colors"
+            className="flex items-center gap-2 px-5 py-3 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-xl shadow-2xl transition-colors text-sm"
           >
-            Deshacer
+            <RotateCcw className="w-4 h-4 text-indigo-400" />
+            Rehacer última acción
+            <span className="text-gray-500 text-xs ml-1">Ctrl+Z</span>
           </button>
-          <span className="text-gray-500 text-xs hidden sm:inline">Ctrl+Z</span>
         </div>
       )}
     </div>
